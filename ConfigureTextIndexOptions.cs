@@ -26,7 +26,7 @@ namespace UmbracoExamine.Text
             if (name.Equals(TextIndexConstants.TextIndexName))
             {
                 options.Analyzer = new StandardAnalyzer(LuceneVersion.LUCENE_48);
-                options.Validator = new TextValueSetValidator(null);
+                options.Validator = new TextValueSetValidator(true, null);
                 options.FieldDefinitions = new FieldDefinitionCollection(
                     new FieldDefinition(TextIndexConstants.TextContentFieldName, FieldDefinitionTypes.FullText));
 

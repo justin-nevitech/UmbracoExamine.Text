@@ -1,4 +1,5 @@
 ﻿using Examine;
+using Umbraco.Cms.Core;
 using Umbraco.Cms.Infrastructure.Examine;
 using Umbraco.Extensions;
 
@@ -6,14 +7,18 @@ namespace UmbracoExamine.Text
 {
     public class TextValueSetValidator : ValueSetValidator
     {
+        public bool PublishedValuesOnly { get; }
+
         public int? ParentId { get; }
 
         private const string PathKey = "path";
 
-        public TextValueSetValidator(int? parentId,
+        public TextValueSetValidator(bool publishedValuesOnly, 
+            int? parentId,
             IEnumerable<string>? includeItemTypes = null, IEnumerable<string>? excludeItemTypes = null)
             : base(includeItemTypes, excludeItemTypes, null, null)
         {
+            PublishedValuesOnly = publishedValuesOnly;
             ParentId = parentId;
         }
 
@@ -26,6 +31,24 @@ namespace UmbracoExamine.Text
                 // because we need to remove anything that doesn't pass by parent Id in the cases that umbraco data is moved to an illegal parent.
                 if (!path.Contains(string.Concat(",", ParentId.Value, ",")))
                     return false;
+            }
+
+            return true;
+        }
+
+        public bool ValidateRecycleBin(string path, string category)
+        {
+            var recycleBinId = category == IndexTypes.Content
+                ? Constants.System.RecycleBinContentString
+                : Constants.System.RecycleBinMediaString;
+
+            //check for recycle bin
+            if (PublishedValuesOnly)
+            {
+                if (path.Contains(string.Concat(",", recycleBinId, ",")))
+                {
+                    return false;
+                }
             }
 
             return true;
@@ -51,7 +74,7 @@ namespace UmbracoExamine.Text
 
             var filteredValues = valueSet.Values.ToDictionary(x => x.Key, x => x.Value.ToList());
 
-            bool isFiltered = !ValidatePath(path!);
+            bool isFiltered = !ValidatePath(path!) || !ValidateRecycleBin(path!, valueSet.Category);
 
             var filteredValueSet = new ValueSet(valueSet.Id, valueSet.Category, valueSet.ItemType, filteredValues.ToDictionary(x => x.Key, x => (IEnumerable<object>)x.Value));
             return new ValueSetValidationResult(isFiltered ? ValueSetValidationStatus.Filtered : ValueSetValidationStatus.Valid, filteredValueSet);
